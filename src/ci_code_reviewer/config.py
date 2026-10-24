@@ -45,6 +45,21 @@ class RulesConfig(BaseModel):
     )
 
 
+class VotingConfig(BaseModel):
+    enabled: bool = Field(
+        default=False,
+        description="Whether the agent is permitted to cast official PR review votes (APPROVE or REQUEST_CHANGES).",
+    )
+    allow_approve: bool = Field(
+        default=True,
+        description="Whether the agent can emit an APPROVE review event when all lenses pass cleanly.",
+    )
+    allow_request_changes: bool = Field(
+        default=True,
+        description="Whether the agent can emit a REQUEST_CHANGES review event when blockers are found.",
+    )
+
+
 class AuthConfig(BaseModel):
     provider: str = Field(
         default="litellm",
@@ -74,6 +89,7 @@ class ReviewerConfig(BaseModel):
     )
     filters: FilterConfig = Field(default_factory=FilterConfig)
     rules: RulesConfig = Field(default_factory=RulesConfig)
+    voting: VotingConfig = Field(default_factory=VotingConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
     lenses: list[ReviewLensConfig] = Field(
         default_factory=get_default_lenses,

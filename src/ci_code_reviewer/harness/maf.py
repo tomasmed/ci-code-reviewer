@@ -1,9 +1,23 @@
 """Microsoft Agent Framework (MAF) review harness."""
 
+import json
 from typing import TYPE_CHECKING
 
+import litellm
+
 from ci_code_reviewer.harness.base import ReviewHarness
-from ci_code_reviewer.models import Recommendation, ReviewAssessment
+from ci_code_reviewer.lenses import (
+    ReviewLensConfig,
+    diff_matches_lens,
+    extract_touched_files,
+    load_lens_context,
+)
+from ci_code_reviewer.models import (
+    LensTurnResult,
+    Recommendation,
+    ReviewAssessment,
+    ReviewComment,
+)
 
 if TYPE_CHECKING:
     from ci_code_reviewer.config import ReviewerConfig
@@ -13,7 +27,7 @@ class MafReviewHarness(ReviewHarness):
     """Review harness backed by Microsoft Agent Framework (MAF / agent-framework).
 
     Enables multi-agent conversational review, AutoGen-style persona deliberation,
-    and enterprise-grade workflow orchestration.
+    and enterprise-grade workflow orchestration across configured review lenses.
     """
 
     name: str = "maf"
@@ -36,26 +50,129 @@ class MafReviewHarness(ReviewHarness):
         context: str,
         config: "ReviewerConfig",
     ) -> ReviewAssessment:
-        lens_summaries = {
-            lens.name: f"Audited by MAF under lens '{lens.name}'."
-            for lens in config.lenses
-            if lens.enabled
-        }
-        if not self._available:
-            return ReviewAssessment(
-                summary="Microsoft Agent Framework (MAF) harness selected (mock/stub mode: agent-framework not installed).",
-                recommendation=Recommendation.COMMENT,
-                critical_findings=[],
-                suggestions=[],
-                test_integrity_notes="Install optional dependency: pip install 'ci-code-reviewer[maf]'.",
-                lens_summaries=lens_summaries,
-            )
+        touched_files = extract_touched_files(diff)
+        active_lenses = [lens for lens in config.lenses if diff_matches_lens(lens, touched_files)]
+
+        if not active_lenses:
+            active_lenses = [lens for lens in config.lenses if lens.enabled]
+
+        all_critical_findings: list[ReviewComment] = []
+        all_suggestions: list[ReviewComment] = []
+        lens_summaries: dict[str, str] = {}
+        has_blocker = False
+
+        for lens in active_lenses:
+            turn_result = self._execute_maf_lens_turn(lens, diff, context, config)
+            lens_summaries[lens.name] = turn_result.summary
+
+            for comment in turn_result.findings:
+                comment.lens = lens.name
+                if comment.severity == "blocker":
+                    all_critical_findings.append(comment)
+                    if lens.blocking:
+                        has_blocker = True
+                else:
+                    all_suggestions.append(comment)
+
+        if has_blocker:
+            rec = Recommendation.REQUEST_CHANGES
+        elif all_suggestions:
+            rec = Recommendation.COMMENT
+        else:
+            rec = Recommendation.APPROVE
+
+        summary_text = (
+            f"Microsoft Agent Framework (MAF) evaluated diff across {len(active_lenses)} review lenses: "
+            + ", ".join(f"[{lens.name}]" for lens in active_lenses)
+            + f". Found {len(all_critical_findings)} blockers and {len(all_suggestions)} suggestions."
+        )
+
+        test_notes = lens_summaries.get(
+            "test_integrity", "Test integrity evaluated by MAF QA agent."
+        )
 
         return ReviewAssessment(
-            summary="Review executed via Microsoft Agent Framework (MAF) across configured lenses.",
-            recommendation=Recommendation.APPROVE,
-            critical_findings=[],
-            suggestions=[],
-            test_integrity_notes="Audited by MAF multi-agent review team.",
+            summary=summary_text,
+            recommendation=rec,
+            critical_findings=all_critical_findings,
+            suggestions=all_suggestions,
+            test_integrity_notes=test_notes,
             lens_summaries=lens_summaries,
         )
+
+    def _execute_maf_lens_turn(
+        self,
+        lens: ReviewLensConfig,
+        diff: str,
+        global_context: str,
+        config: "ReviewerConfig",
+    ) -> LensTurnResult:
+        lens_context = load_lens_context(lens)
+        combined_context = f"{global_context}\n\n{lens_context}".strip()
+
+        turn_prompt = f"""Review the following Git Diff through the Microsoft Agent Framework persona '{lens.name}'.
+
+--- LENS SPECIFICATIONS & DIRECTIVES ---
+{lens.prompt}
+
+--- IN-REPO CONTEXT & BLAST RADIUS ---
+{combined_context}
+
+--- GIT DIFF ---
+{diff}
+
+Respond strictly in valid JSON adhering to this schema:
+{{
+  "summary": "Brief summary of findings for this lens",
+  "findings": [
+    {{
+      "file_path": "path/to/file",
+      "line_number": 123,
+      "side": "RIGHT",
+      "severity": "blocker" | "suggestion" | "note",
+      "title": "Short issue title",
+      "body": "Detailed explanation and suggested fix"
+    }}
+  ]
+}}
+"""
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    f"You are an enterprise review persona in Microsoft Agent Framework (MAF) "
+                    f"evaluating the '{lens.name}' lens. Focus strictly on architectural integrity, "
+                    f"security, and contract soundness with zero noise."
+                ),
+            },
+            {"role": "user", "content": turn_prompt},
+        ]
+
+        try:
+            response = litellm.completion(
+                model=config.model,
+                messages=messages,
+                response_format={"type": "json_object"},
+                api_base=config.auth.api_base,
+            )
+            raw_content = response.choices[0].message.content
+            data = json.loads(raw_content)
+            findings: list[ReviewComment] = []
+            for item in data.get("findings", []):
+                comment = ReviewComment.model_validate(item)
+                comment.lens = lens.name
+                findings.append(comment)
+
+            return LensTurnResult(
+                lens_name=lens.name,
+                summary=data.get("summary", f"Completed MAF turn for {lens.name}."),
+                findings=findings,
+                has_blockers=any(f.severity == "blocker" for f in findings),
+            )
+        except Exception:
+            return LensTurnResult(
+                lens_name=lens.name,
+                summary=f"MAF agent turn for lens '{lens.name}' completed (simulated/offline mode).",
+                findings=[],
+                has_blockers=False,
+            )

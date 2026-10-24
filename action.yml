@@ -27,6 +27,10 @@ inputs:
     description: "If true, logs review findings to CI console without publishing comments to the pull request."
     required: false
     default: "false"
+  emit_vote:
+    description: "Allow agent to cast official PR review vote (APPROVE / REQUEST_CHANGES). If false, submits as advisory COMMENT."
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -49,6 +53,8 @@ runs:
           --model "${{ inputs.model }}" \
           --harness "${{ inputs.harness }}" \
           --config "${{ inputs.config_path }}" \
-          ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
+          ${{ inputs.dry_run == 'true' && '--dry-run' || '' }} \
+          ${{ inputs.emit_vote == 'true' && '--emit-vote' || '' }}
       env:
         GITHUB_TOKEN: ${{ inputs.github_token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}

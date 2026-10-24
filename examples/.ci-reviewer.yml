@@ -36,6 +36,14 @@ rules:
   # Check conformance against repository architecture and ADRs
   check_architecture: true
 
+# Code Owner PR Voting Policy
+voting:
+  # When true, agent submits official APPROVE or REQUEST_CHANGES reviews.
+  # When false, submits safe advisory COMMENT reviews.
+  enabled: false
+  allow_approve: true
+  allow_request_changes: true
+
 # Review Lenses: Specialized sub-agent turns decomposing review focus.
 # In addition to built-in lenses, define repo-specific sub-agent lenses here
 # or add markdown lens files in .ci-reviewer/lenses/*.md

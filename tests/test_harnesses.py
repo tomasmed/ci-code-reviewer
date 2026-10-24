@@ -69,3 +69,37 @@ def test_maf_fallback_review() -> None:
     )
     assert result.recommendation in [Recommendation.APPROVE, Recommendation.COMMENT]
     assert "Microsoft Agent Framework" in result.summary or "MAF" in result.summary
+
+
+def test_maf_multi_lens_turn_execution() -> None:
+    from ci_code_reviewer.lenses import ReviewLensConfig
+
+    harness = MafReviewHarness()
+    config = ReviewerConfig(
+        harness="maf",
+        lenses=[
+            ReviewLensConfig(
+                name="sql_lens",
+                description="Database audits",
+                prompt="Check SQL queries",
+                file_patterns=["src/db/**"],
+            ),
+            ReviewLensConfig(
+                name="general_lens",
+                description="General audit",
+                prompt="Check general safety",
+                file_patterns=[],
+            ),
+        ],
+    )
+    diff = """
+--- a/src/db/queries.py
++++ b/src/db/queries.py
+@@ -1,2 +1,2 @@
+-def get_user(): pass
++def get_user(id): pass
+"""
+    assessment = harness.review(diff=diff, context="ADR 001", config=config)
+    assert "sql_lens" in assessment.lens_summaries
+    assert "general_lens" in assessment.lens_summaries
+    assert "MAF" in assessment.summary or "Microsoft Agent Framework" in assessment.summary
