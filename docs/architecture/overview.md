@@ -73,10 +73,12 @@ src/ci_code_reviewer/
 ├── cli.py             # Typer CLI commands (review, version, validate-config)
 ├── config.py          # Pydantic configuration parser for .ci-reviewer.yml
 ├── models.py          # Schemas: ReviewComment, ReviewAssessment, Recommendation
-├── harness/           # Agent orchestration layer
+├── harness/           # Pluggable Agent Orchestration Layer
 │   ├── base.py        # Abstract Base Class: ReviewHarness
-│   ├── native.py      # Ultra-fast LiteLLM agent runner
-│   └── strands.py     # AWS Strands SDK adapter with MCP tool capabilities
+│   ├── factory.py     # Factory resolver: get_harness("strands" | "maf" | "native")
+│   ├── native.py      # Sub-second LiteLLM direct agent runner
+│   ├── strands.py     # AWS Strands SDK adapter with MCP tool capabilities
+│   └── maf.py         # Microsoft Agent Framework (MAF) multi-agent runner
 ├── providers/         # Model and Auth layer
 │   ├── litellm.py     # LiteLLM client wrapper with budget & fallback logic
 │   └── auth.py        # Pluggable AuthStrategy (API keys, Ollama, session bridge)

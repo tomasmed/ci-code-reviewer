@@ -62,6 +62,10 @@ class ReviewerConfig(BaseModel):
         default="anthropic/claude-3-5-sonnet-20241022",
         description="Default model name.",
     )
+    harness: str = Field(
+        default="native",
+        description="Agent harness engine: 'native', 'strands' (AWS Strands), or 'maf' (Microsoft Agent Framework).",
+    )
     filters: FilterConfig = Field(default_factory=FilterConfig)
     rules: RulesConfig = Field(default_factory=RulesConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)

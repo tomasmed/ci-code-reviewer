@@ -10,10 +10,12 @@ Built on a pluggable agent harness supporting **AWS Strands** and a lightweight 
 
 * **High Signal, Zero Noise**: Ignores formatting, whitespace, and linting trivia that automated formatters (`ruff`, `biome`, `prettier`) already handle. Focuses purely on logic bugs, security/OWASP flaws, architectural drift, and test integrity.
 * **Anti-Lazy-Assert Test Auditing**: Scrutinizes test changes to catch hollow assertions (`assert True`, empty mocks, or tests that bypass real logic).
-* **Pluggable Agent Harness**:
-  * **Native Engine**: Sub-second startup time on ephemeral CI runners via `litellm` and `pydantic`.
-  * **AWS Strands Engine**: Full agentic orchestration powered by AWS's **Strands Agents** (`strands-agents`), supporting Model Context Protocol (MCP) tools, dynamic context fetching, and sandboxing.
+* **Multi-Harness Architecture (Launch Support for Strands & MAF)**:
+  * **AWS Strands (`strands`)**: Powered by AWS's **Strands Agents** (`strands-agents`), supporting Model Context Protocol (MCP) tools, Cedar-based sandboxing, and dynamic tool calling.
+  * **Microsoft Agent Framework (`maf`)**: Powered by Microsoft's unified **Agent Framework** (`agent-framework`), offering AutoGen-style conversational multi-agent review teams and enterprise coordination.
+  * **Native Engine (`native`)**: Sub-second startup time on ephemeral CI runners via direct `litellm` and `pydantic`.
 * **Universal BYOK (Bring Your Own Key)**: Powered by LiteLLM. Use Claude 3.5 Sonnet, GPT-4o, Gemini 2.0, DeepSeek R1, or air-gapped local models via **Ollama**.
+* **User 0 Dogfooding Process**: Actively tested and refined against real pull requests across `tomasmed/*` repositories prior to public release.
 * **Subscription Bridging Layer**: Extensible auth architecture designed to support consumer subscriptions (Claude Code session tokens, GitHub Copilot tokens, and OAuth bridges).
 * **Zero-Friction Adoption**: Drop a 15-line GitHub Action into any repository or point an AI coding assistant at this repo to auto-configure.
 
@@ -140,9 +142,11 @@ rules:
 ```
 
 For comprehensive technical specifications, see:
+* [Prior Art & Competitive Landscape](docs/research/prior-art-and-landscape.md)
 * [System Architecture Overview](docs/architecture/overview.md)
 * [Harness & Model Layer Research](docs/research/agent-harness-and-model-layer.md)
-* [ADR 0002: Technology Stack & Pluggable Harness](docs/adr/0002-technology-stack-and-agent-harness.md)
+* [ADR 0002: Multi-Harness Technology Stack](docs/adr/0002-technology-stack-and-agent-harness.md)
+* [User 0 Dogfooding Playbook](docs/dogfooding/user-0-playbook.md)
 
 ---
 

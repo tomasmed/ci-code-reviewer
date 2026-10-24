@@ -20,7 +20,7 @@ inputs:
     required: false
     default: ".ci-reviewer.yml"
   harness:
-    description: "Review harness to execute: 'native' (fastest) or 'strands' (AWS Strands SDK with tools)."
+    description: "Review harness to execute: 'native' (fastest), 'strands' (AWS Strands SDK), or 'maf' (Microsoft Agent Framework)."
     required: false
     default: "native"
   dry_run:
@@ -47,6 +47,7 @@ runs:
         uvx --from git+https://github.com/tomasmed/ci-code-reviewer.git ci-code-reviewer review \
           --pr "${{ github.event.pull_request.number }}" \
           --model "${{ inputs.model }}" \
+          --harness "${{ inputs.harness }}" \
           --config "${{ inputs.config_path }}" \
           ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
       env:

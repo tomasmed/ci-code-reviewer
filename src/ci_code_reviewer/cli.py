@@ -33,6 +33,11 @@ def review(
     model: str | None = typer.Option(
         None, "--model", "-m", help="Override LLM model name (passed to LiteLLM)."
     ),
+    harness: str | None = typer.Option(
+        None,
+        "--harness",
+        help="Review harness to use: 'native', 'strands' (AWS Strands), or 'maf' (Microsoft Agent Framework).",
+    ),
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Run review agent without publishing comments to GitHub."
     ),
@@ -41,8 +46,12 @@ def review(
     cfg = ReviewerConfig.load(config)
     if model:
         cfg.model = model
+    if harness:
+        cfg.harness = harness
 
-    console.print(f"[cyan]Loaded configuration. Model: [bold]{cfg.model}[/bold][/cyan]")
+    console.print(
+        f"[cyan]Loaded configuration. Model: [bold]{cfg.model}[/bold] | Harness: [bold]{cfg.harness}[/bold][/cyan]"
+    )
 
     if diff_file and diff_file.is_file():
         diff_text = diff_file.read_text(encoding="utf-8")

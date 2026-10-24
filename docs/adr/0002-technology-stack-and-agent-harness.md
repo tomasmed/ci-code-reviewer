@@ -1,40 +1,38 @@
-# 0002. Adopt Python (uv), LiteLLM BYOK Provider Layer, and Pluggable Agent Harness (AWS Strands + Native)
+# 0002. Adopt Python (uv), LiteLLM Provider Layer, and Multi-Harness Architecture (AWS Strands + Microsoft Agent Framework + Native)
 
 * **Status**: accepted
 * **Deciders**: tomasmed, Agentic Engineering Team
 * **Date**: 2026-10-24
-* **Technical Story**: Architecture foundation for open-source CI code reviewer
+* **Technical Story**: Architecture foundation for open-source CI code reviewer with launch support for AWS Strands and Microsoft Agent Framework (MAF).
 
 ## Context and Problem Statement
 
 We are creating an open-source agentic code reviewer intended to run inside GitHub Actions and CI/CD pipelines. The system must:
 1. Review pull requests with deep context (code diffs, in-repo ADRs, test efficacy, OWASP security guardrails) rather than superficial formatting nitpicks.
 2. Allow users to Bring Your Own Key (BYOK) across any LLM (Claude, GPT, Gemini, Bedrock) or run locally using open-source weights (Ollama, vLLM).
-3. Provide an architecture extensible toward subscription bridging (e.g. Claude Code session tokens, GitHub Copilot subscriptions).
-4. Run with minimal startup latency inside ephemeral CI runners (such as GitHub-hosted `ubuntu-latest`).
-5. Be trivially pullable/configurable by any repository with a simple GitHub Actions workflow or agent prompt.
+3. Support multiple leading agent frameworks from day one, specifically launching with support for both **AWS Strands** (`strands-agents`) and the **Microsoft Agent Framework** (`agent-framework` / MAF), alongside an ultra-fast native engine.
+4. Provide an architecture extensible toward subscription bridging (e.g. Claude Code session tokens, GitHub Copilot subscriptions).
+5. Enable User 0 dogfooding across repository suites.
 
 ## Decision Drivers
 
-* **Startup & Execution Speed in CI**: Ephemeral CI runners incur per-minute billing and developer wait time. Heavy frameworks with hundreds of dependencies slow down PR checks.
-* **Model Agnosticism**: Avoid vendor lock-in; allow developers and enterprises to use their preferred models or air-gapped local setups.
-* **Extensible Agent Capabilities**: Support tool-calling, MCP (Model Context Protocol), and multi-turn reasoning without locking the entire architecture to a single rigid framework.
+* **Ecosystem Diversity**: Avoid vendor lock-in to a single agent SDK. Some teams operate within AWS environments (favouring Strands and Bedrock), while others operate in Microsoft/Azure environments (favouring MAF, AutoGen, and Semantic Kernel).
+* **Startup & Execution Speed in CI**: Ephemeral CI runners require fast bootstrap.
+* **Model Agnosticism**: Universal BYOK via LiteLLM.
 
 ## Considered Options
 
-* **Option 1**: Heavyweight LangChain / LangGraph orchestration.
-* **Option 2**: Pure single-shot script with raw vendor SDKs (e.g. only `anthropic` or `openai` SDK).
-* **Option 3**: **Pluggable Harness Architecture** with:
-  - **Toolchain**: Python 3.12+ managed by `uv` (lightning-fast installs and virtual environment syncing).
-  - **Model Abstraction**: **LiteLLM** for universal BYOK across 100+ providers and Ollama support.
-  - **Review Harness**: A dual-mode harness interface (`ReviewHarness`):
-    - `NativeReviewHarness`: Default, lightweight, zero-overhead pipeline using LiteLLM structured outputs.
-    - `StrandsReviewHarness`: Optional agentic harness using **AWS Strands** (`strands-agents`) for MCP tool integration, multi-agent swarms, and sandboxed tool calling.
-  - **Auth Layer**: Pluggable `AuthStrategy` supporting direct API keys, local endpoints (Ollama), and planned session/subscription bridges (Claude Code / Copilot tokens).
+* **Option 1**: Lock exclusively to AWS Strands.
+* **Option 2**: Lock exclusively to Microsoft Agent Framework (MAF) / AutoGen.
+* **Option 3**: **Pluggable Multi-Harness Architecture** with launch support for:
+  - **AWS Strands (`strands-agents`)**: For Model Context Protocol (MCP) tools, Cedar-sandboxed execution, and AWS/Bedrock native teams.
+  - **Microsoft Agent Framework (`agent-framework` / MAF)**: For enterprise multi-agent coordination, AutoGen conversation topology, and Azure/OpenAI native teams.
+  - **Native LiteLLM Engine**: For sub-second, zero-dependency CI runs.
+  - **LiteLLM**: Universal BYOK provider abstraction across 100+ models.
 
 ## Decision Outcome
 
-Chosen option: **Option 3**.
+Chosen option: **Option 3**. Launching with first-class support for both **AWS Strands** and **Microsoft Agent Framework (MAF)**.
 
 ### Positive Consequences
 
