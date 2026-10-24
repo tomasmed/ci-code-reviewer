@@ -4,9 +4,9 @@ version = "0.1.0"
 description = "Open-source agentic code reviewer for GitHub Actions, CI pipelines, and automated PR review."
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "Apache-2.0" }
+license = { text = "MPL-2.0" }
 authors = [
-    { name = "Tomas", email = "tomas@users.noreply.github.com" }
+    { name = "tomasmed" }
 ]
 dependencies = [
     "litellm>=1.50.0",

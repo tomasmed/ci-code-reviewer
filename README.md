@@ -190,3 +190,11 @@ uv sync --extra dev
 ```
 
 All contributions must pass the deterministic verification gate and adhere to [AGENTS.md](AGENTS.md).
+
+---
+
+## 📄 License
+
+This project is licensed under the **Mozilla Public License 2.0 (MPL-2.0)**. See [`LICENSE`](LICENSE) for details.
+* **Free to use & integrate**: Anyone can run `ci-code-reviewer` in their open-source or commercial CI/CD pipelines without legal friction or viral license contamination.
+* **Protected & Reciprocal**: Modifications to this project's code must remain free, open source, and contributed back under MPL 2.0.
