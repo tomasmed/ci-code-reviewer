@@ -72,7 +72,8 @@ Its core objectives are:
 src/ci_code_reviewer/
 ├── cli.py             # Typer CLI commands (review, version, validate-config)
 ├── config.py          # Pydantic configuration parser for .ci-reviewer.yml
-├── models.py          # Schemas: ReviewComment, ReviewAssessment, Recommendation
+├── lenses.py          # In-repo review lens definition, discovery, & turn execution
+├── models.py          # Schemas: ReviewComment, LensTurnResult, ReviewAssessment
 ├── harness/           # Pluggable Agent Orchestration Layer
 │   ├── base.py        # Abstract Base Class: ReviewHarness
 │   ├── factory.py     # Factory resolver: get_harness("strands" | "maf" | "native")
@@ -96,7 +97,47 @@ src/ci_code_reviewer/
 
 ---
 
-## 4. Key Configurations (`.ci-reviewer.yml`)
+## 4. In-Repo Review Lenses & Sub-Agent Turns
+
+Instead of a single monolithic prompt, `ci-code-reviewer` decomposes code reviews into specialized **Review Lenses** executed as sub-agent turns:
+
+```
+                            Pull Request Git Diff
+                                      │
+            ┌─────────────────────────┼─────────────────────────┐
+            ▼                         ▼                         ▼
+   ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+   │  Architecture / │       │   Data Access   │       │ Test Integrity  │
+   │    ADRs Lens    │       │     SP Lens     │       │      Lens       │
+   │ (Sub-Agent Turn)│       │ (Sub-Agent Turn)│       │ (Sub-Agent Turn)│
+   └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+            │                         │                         │
+            └─────────────────────────┼─────────────────────────┘
+                                      ▼
+                        ┌───────────────────────────┐
+                        │   Synthesized Review      │
+                        │   - Tagged by Lens        │
+                        │   - Blocking Collated     │
+                        └───────────────────────────┘
+```
+
+### Lens Definition Mechanisms
+Repositories can define custom lenses in two ways:
+1. **Directly in `.ci-reviewer.yml`**:
+   ```yaml
+   lenses:
+     - name: "data_access"
+       file_patterns: ["src/db/**", "**/sql/**"]
+       context_files: ["docs/database-standards.md"]
+       blocking: true
+       prompt: "Enforce strict stored-procedure (SP) driven access; disallow ad-hoc schema migrations."
+   ```
+2. **Markdown Lens Files (`.ci-reviewer/lenses/*.md`)**:
+   Add dedicated markdown prompt files with YAML frontmatter specifying file patterns, context files, and blocking behavior.
+
+---
+
+## 5. Key Configurations (`.ci-reviewer.yml`)
 
 Consumer repositories configure behavior via `.ci-reviewer.yml`:
 

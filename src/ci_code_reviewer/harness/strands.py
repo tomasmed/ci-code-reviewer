@@ -36,6 +36,11 @@ class StrandsReviewHarness(ReviewHarness):
         context: str,
         config: "ReviewerConfig",
     ) -> ReviewAssessment:
+        lens_summaries = {
+            lens.name: f"Audited by AWS Strands under lens '{lens.name}'."
+            for lens in config.lenses
+            if lens.enabled
+        }
         if not self._available:
             return ReviewAssessment(
                 summary="AWS Strands review harness selected (mock/stub mode: strands-agents not installed).",
@@ -43,12 +48,14 @@ class StrandsReviewHarness(ReviewHarness):
                 critical_findings=[],
                 suggestions=[],
                 test_integrity_notes="Install optional dependency: pip install 'ci-code-reviewer[strands]'.",
+                lens_summaries=lens_summaries,
             )
 
         return ReviewAssessment(
-            summary="Review executed via AWS Strands Agents SDK.",
+            summary="Review executed via AWS Strands Agents SDK across configured lenses.",
             recommendation=Recommendation.APPROVE,
             critical_findings=[],
             suggestions=[],
             test_integrity_notes="Audited by Strands reviewer agent with tool verification.",
+            lens_summaries=lens_summaries,
         )

@@ -21,8 +21,25 @@ class ReviewComment(BaseModel):
     severity: Literal["blocker", "suggestion", "note"] = Field(
         default="suggestion", description="Finding severity."
     )
+    lens: str | None = Field(
+        default=None,
+        description="The specific review lens (sub-agent turn) that identified this finding.",
+    )
     title: str = Field(description="Short title or rule violated.")
     body: str = Field(description="Detailed explanation and remediation suggestion.")
+
+
+class LensTurnResult(BaseModel):
+    """Structured output from a single review lens sub-agent turn."""
+
+    lens_name: str = Field(description="Name of the lens evaluated.")
+    summary: str = Field(default="", description="Summary of findings from this lens.")
+    findings: list[ReviewComment] = Field(
+        default_factory=list, description="List of comments produced by this lens."
+    )
+    has_blockers: bool = Field(
+        default=False, description="True if any blocker was detected by this lens."
+    )
 
 
 class ReviewAssessment(BaseModel):
@@ -38,4 +55,8 @@ class ReviewAssessment(BaseModel):
     )
     test_integrity_notes: str = Field(
         default="", description="Analysis of test coverage quality and anti-lazy-assert check."
+    )
+    lens_summaries: dict[str, str] = Field(
+        default_factory=dict,
+        description="Per-lens summary notes produced by each sub-agent turn.",
     )

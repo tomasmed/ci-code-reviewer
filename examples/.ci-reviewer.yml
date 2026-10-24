@@ -36,8 +36,53 @@ rules:
   # Check conformance against repository architecture and ADRs
   check_architecture: true
 
-  # Custom guidelines specific to your repository
-  custom_guidelines:
-    - "Never use raw SQL queries in controller or route handler code."
-    - "Ensure database migrations are backwards-compatible."
-    - "Keep public API contracts documented with type hints or docstrings."
+# Review Lenses: Specialized sub-agent turns decomposing review focus.
+# In addition to built-in lenses, define repo-specific sub-agent lenses here
+# or add markdown lens files in .ci-reviewer/lenses/*.md
+lenses:
+  # Lens 1: In-Repo ADR Application Lens
+  - name: "architecture_adrs"
+    description: "Audits diff strictly against in-repo ADRs and layering boundaries"
+    context_files:
+      - "docs/adr/*.md"
+      - "docs/architecture/*.md"
+      - "AGENTS.md"
+    blocking: true
+    prompt: |
+      You are an expert Software Architecture sub-agent.
+      1. Inspect the git diff against the provided Architecture Decision Records (ADRs).
+      2. Ensure new code strictly respects established decisions (e.g., choice of libraries, caching strategy, module layering).
+      3. Flag any prohibited dependencies or architecture violations as critical blockers.
+
+  # Lens 2: Data Access & Stored Procedure Lens (Example of custom in-repo policy)
+  - name: "data_access_layer"
+    description: "Enforces SP-driven data access rules and prohibits ad-hoc migrations"
+    file_patterns:
+      - "src/db/**"
+      - "**/database/**"
+      - "**/queries/**"
+      - "**/sql/**"
+    blocking: true
+    prompt: |
+      You are a specialized Database Architecture sub-agent.
+      This repository enforces strict Stored-Procedure (SP) driven data access:
+      - Prohibit ad-hoc schema migrations or direct ALTER TABLE scripts in application code.
+      - Ensure all database queries execute via parameterized stored procedures.
+      - Disallow inline, raw SQL strings inside API route handlers or domain services.
+      - Ensure parameter bindings prevent SQL injection.
+      Flag any direct inline queries or rogue migration attempts as critical blockers.
+
+  # Lens 3: Test Integrity & Anti-Lazy-Assert Lens
+  - name: "test_integrity"
+    description: "Audits test quality and flags hollow assertions"
+    file_patterns:
+      - "tests/**"
+      - "test/**"
+      - "**/*test*.py"
+    blocking: false
+    prompt: |
+      You are an expert QA and Test Integrity sub-agent.
+      Scrutinize the test changes in this pull request:
+      - Anti-Lazy-Assert: Flag hollow assertions (e.g., 'assert True', tautological assertions, empty stubs).
+      - Over-Mocking: Flag tests that mock out all meaningful domain logic.
+      - Missing Tests: If new business logic or boundary conditions are introduced without tests, note it.

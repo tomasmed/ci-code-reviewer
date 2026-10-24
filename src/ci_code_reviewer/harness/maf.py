@@ -36,6 +36,11 @@ class MafReviewHarness(ReviewHarness):
         context: str,
         config: "ReviewerConfig",
     ) -> ReviewAssessment:
+        lens_summaries = {
+            lens.name: f"Audited by MAF under lens '{lens.name}'."
+            for lens in config.lenses
+            if lens.enabled
+        }
         if not self._available:
             return ReviewAssessment(
                 summary="Microsoft Agent Framework (MAF) harness selected (mock/stub mode: agent-framework not installed).",
@@ -43,12 +48,14 @@ class MafReviewHarness(ReviewHarness):
                 critical_findings=[],
                 suggestions=[],
                 test_integrity_notes="Install optional dependency: pip install 'ci-code-reviewer[maf]'.",
+                lens_summaries=lens_summaries,
             )
 
         return ReviewAssessment(
-            summary="Review executed via Microsoft Agent Framework (MAF).",
+            summary="Review executed via Microsoft Agent Framework (MAF) across configured lenses.",
             recommendation=Recommendation.APPROVE,
             critical_findings=[],
             suggestions=[],
             test_integrity_notes="Audited by MAF multi-agent review team.",
+            lens_summaries=lens_summaries,
         )

@@ -9,6 +9,7 @@ Built on a pluggable agent harness supporting **AWS Strands** and a lightweight 
 ## 🌟 Key Features
 
 * **High Signal, Zero Noise**: Ignores formatting, whitespace, and linting trivia that automated formatters (`ruff`, `biome`, `prettier`) already handle. Focuses purely on logic bugs, security/OWASP flaws, architectural drift, and test integrity.
+* **In-Repo Review Lenses (Sub-Agent Turns)**: Decomposes PR reviews into specialized perspectives (e.g. ADR conformance, stored-procedure-only data access rules, AppSec) executed as sub-agent turns with file-pattern triggers and in-repo context injection.
 * **Anti-Lazy-Assert Test Auditing**: Scrutinizes test changes to catch hollow assertions (`assert True`, empty mocks, or tests that bypass real logic).
 * **Multi-Harness Architecture (Launch Support for Strands & MAF)**:
   * **AWS Strands (`strands`)**: Powered by AWS's **Strands Agents** (`strands-agents`), supporting Model Context Protocol (MCP) tools, Cedar-based sandboxing, and dynamic tool calling.

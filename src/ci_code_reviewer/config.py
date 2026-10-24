@@ -6,6 +6,12 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
+from ci_code_reviewer.lenses import (
+    ReviewLensConfig,
+    discover_in_repo_lenses,
+    get_default_lenses,
+)
+
 
 class FilterConfig(BaseModel):
     ignore_patterns: list[str] = Field(
@@ -69,19 +75,42 @@ class ReviewerConfig(BaseModel):
     filters: FilterConfig = Field(default_factory=FilterConfig)
     rules: RulesConfig = Field(default_factory=RulesConfig)
     auth: AuthConfig = Field(default_factory=AuthConfig)
+    lenses: list[ReviewLensConfig] = Field(
+        default_factory=get_default_lenses,
+        description="Review lenses evaluated as specialized sub-agent turns.",
+    )
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "ReviewerConfig":
-        """Load configuration from .ci-reviewer.yml, falling back to defaults."""
+        """Load configuration from .ci-reviewer.yml, falling back to defaults,
+
+        and merge with any in-repo lenses discovered in .ci-reviewer/lenses/.
+        """
         search_paths = [
             Path(path) if path else None,
             Path(".ci-reviewer.yml"),
             Path(".ci-reviewer.yaml"),
             Path(".github/ci-reviewer.yml"),
         ]
+
+        raw_data: dict[str, Any] = {}
         for p in search_paths:
             if p and p.is_file():
                 with open(p, encoding="utf-8") as f:
-                    raw_data: dict[str, Any] = yaml.safe_load(f) or {}
-                    return cls.model_validate(raw_data)
-        return cls()
+                    raw_data = yaml.safe_load(f) or {}
+                break
+
+        # If lenses are explicitly specified in YAML, parse them
+        config = cls.model_validate(raw_data)
+
+        # Merge in-repo markdown lenses (.ci-reviewer/lenses/*.md)
+        in_repo_lenses = discover_in_repo_lenses(Path.cwd())
+        if in_repo_lenses:
+            existing_names = {lens.name: i for i, lens in enumerate(config.lenses)}
+            for custom_lens in in_repo_lenses:
+                if custom_lens.name in existing_names:
+                    config.lenses[existing_names[custom_lens.name]] = custom_lens
+                else:
+                    config.lenses.append(custom_lens)
+
+        return config
