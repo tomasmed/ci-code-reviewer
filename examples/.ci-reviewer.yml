@@ -1,0 +1,43 @@
+# .ci-reviewer.yml — Example Configuration
+version: "1"
+
+# LLM model to use (supported by LiteLLM)
+# Options:
+# - anthropic/claude-3-5-sonnet-20241022 (Recommended for deep code review)
+# - openai/gpt-4o
+# - gemini/gemini-2.0-flash
+# - ollama/qwen2.5-coder:32b (Local runner)
+model: "anthropic/claude-3-5-sonnet-20241022"
+
+# Agent harness: "native" (fastest, lightweight) or "strands" (AWS Strands with MCP tool support)
+harness: "native"
+
+filters:
+  ignore_patterns:
+    - "**/*.lock"
+    - "**/pnpm-lock.yaml"
+    - "**/package-lock.json"
+    - "**/poetry.lock"
+    - "**/uv.lock"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.min.js"
+    - "**/*.min.css"
+    - "**/coverage/**"
+  max_diff_lines: 3000
+
+rules:
+  # Flag PRs that add logic without corresponding tests
+  require_tests: true
+
+  # Security checks (OWASP Top 10, credential leaks, unescaped inputs)
+  check_security: true
+
+  # Check conformance against repository architecture and ADRs
+  check_architecture: true
+
+  # Custom guidelines specific to your repository
+  custom_guidelines:
+    - "Never use raw SQL queries in controller or route handler code."
+    - "Ensure database migrations are backwards-compatible."
+    - "Keep public API contracts documented with type hints or docstrings."

@@ -1,0 +1,53 @@
+name: "CI Code Reviewer"
+description: "Open-source agentic code reviewer powered by LiteLLM and pluggable agent harnesses."
+author: "tomasmed"
+
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  model:
+    description: "LLM model identifier supported by LiteLLM (e.g., anthropic/claude-3-5-sonnet-20241022, openai/gpt-4o, ollama/qwen2.5-coder:7b)."
+    required: false
+    default: "anthropic/claude-3-5-sonnet-20241022"
+  github_token:
+    description: "GitHub token used to read pull request diffs and post review comments."
+    required: true
+    default: ${{ github.token }}
+  config_path:
+    description: "Relative path to custom configuration file (.ci-reviewer.yml)."
+    required: false
+    default: ".ci-reviewer.yml"
+  harness:
+    description: "Review harness to execute: 'native' (fastest) or 'strands' (AWS Strands SDK with tools)."
+    required: false
+    default: "native"
+  dry_run:
+    description: "If true, logs review findings to CI console without publishing comments to the pull request."
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Run CI Code Reviewer
+      shell: bash
+      run: |
+        uvx --from git+https://github.com/tomasmed/ci-code-reviewer.git ci-code-reviewer review \
+          --pr "${{ github.event.pull_request.number }}" \
+          --model "${{ inputs.model }}" \
+          --config "${{ inputs.config_path }}" \
+          ${{ inputs.dry_run == 'true' && '--dry-run' || '' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}

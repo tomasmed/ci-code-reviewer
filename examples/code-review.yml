@@ -1,0 +1,32 @@
+# .github/workflows/code-review.yml
+name: Agentic Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Ensure the workflow has write permissions to post comments on the PR
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run CI Code Reviewer
+        uses: tomasmed/ci-code-reviewer@v1
+        with:
+          model: "anthropic/claude-3-5-sonnet-20241022"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          config_path: ".ci-reviewer.yml"
+        env:
+          # Supply the matching API key for your chosen provider
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

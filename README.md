@@ -1,111 +1,191 @@
-# 🤖 Polyglot Agentic Git Template
+# 🤖 CI Code Reviewer
 
-A high-velocity, low-overhead repository template designed for the **Agentic SDLC** and solo/hobbyist developers. 
+An open-source, agentic code reviewer that plugs directly into **GitHub Actions**, CI/CD pipelines, and local developer workflows.
 
-Built to support **Next.js, Vue 3, SvelteKit, C# (.NET), Python (uv), and Go** with zero initial clutter.
-
----
-
-## 🌟 Core Concepts
-
-1. **"Harness Over Model"**: The repository acts as the deterministic control harness for AI agents (Cursor, Claude Code, GitHub Copilot, Aider, Antigravity).
-2. **Universal Contract (`AGENTS.md`)**: A single source of truth for build commands, test recipes, and inviolable guardrails stewarded under the Linux Foundation / Agentic AI Foundation standard.
-3. **Spec-Driven Development (`specs/`)**: Eliminates "vibe-coding" drift by decoupling **Intent** (`spec.md`) from **Plan** (`plan.md`) and **Execution** (`tasks.md`).
-4. **Deterministic Gate (`scripts/verify.*`)**: A single compound command (`lint + typecheck + test`) that agents must run before declaring work complete.
-5. **Architectural Decision Records (`docs/adr/`)**: In-repo MADR records preventing AI from violating past architectural choices or hallucinating external dependencies.
-6. **PR Review Agent Contract (`.agents/pr-reviewer.md`)**: Specific guidelines for automated code reviews focused on spec conformance, test integrity, and security (without linter nitpicking).
+Built on a pluggable agent harness supporting **AWS Strands** and a lightweight **Native LiteLLM** engine, `ci-code-reviewer` enables **Bring Your Own Key (BYOK)** across 100+ commercial and local AI models (Anthropic Claude, OpenAI, Google Gemini, Ollama, AWS Bedrock).
 
 ---
 
-## 🚀 Quick Start: The "Commit 1" Bootstrap Ritual
+## 🌟 Key Features
 
-When you create a new repository from this template, your first action is to specialize it for your target stack.
+* **High Signal, Zero Noise**: Ignores formatting, whitespace, and linting trivia that automated formatters (`ruff`, `biome`, `prettier`) already handle. Focuses purely on logic bugs, security/OWASP flaws, architectural drift, and test integrity.
+* **Anti-Lazy-Assert Test Auditing**: Scrutinizes test changes to catch hollow assertions (`assert True`, empty mocks, or tests that bypass real logic).
+* **Pluggable Agent Harness**:
+  * **Native Engine**: Sub-second startup time on ephemeral CI runners via `litellm` and `pydantic`.
+  * **AWS Strands Engine**: Full agentic orchestration powered by AWS's **Strands Agents** (`strands-agents`), supporting Model Context Protocol (MCP) tools, dynamic context fetching, and sandboxing.
+* **Universal BYOK (Bring Your Own Key)**: Powered by LiteLLM. Use Claude 3.5 Sonnet, GPT-4o, Gemini 2.0, DeepSeek R1, or air-gapped local models via **Ollama**.
+* **Subscription Bridging Layer**: Extensible auth architecture designed to support consumer subscriptions (Claude Code session tokens, GitHub Copilot tokens, and OAuth bridges).
+* **Zero-Friction Adoption**: Drop a 15-line GitHub Action into any repository or point an AI coding assistant at this repo to auto-configure.
 
-### Option A: Let an AI Agent Initialize It (Recommended)
-Prompt your agent in the new repository:
-> *"Initialize this project for **Next.js 15 (TypeScript, Tailwind)** using the bootstrap protocol in `.agents/bootstrap.md`."*
-*(Replace with Vue, Svelte, .NET, Python, or Go as desired).*
+---
 
-The agent will:
-1. Update `AGENTS.md` with your stack's exact build/test/lint commands.
-2. Initialize `docs/adr/0002-technology-stack.md`.
-3. Scaffold baseline files and verify them with `./scripts/verify.ps1`.
-4. Stage and commit: `feat(init): bootstrap project with [Stack] architecture and agent harness`.
+## 🚀 Quick Start: Add to Any GitHub Repository
 
-### Option B: Run the Bootstrap Helper Manually
-```powershell
-# In PowerShell:
-./scripts/bootstrap.ps1 -Stack nextjs   # or vue, svelte, dotnet, python, go
+Add `.github/workflows/code-review.yml` to your repository:
+
+```yaml
+name: Agentic Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run CI Code Reviewer
+        uses: tomasmed/ci-code-reviewer@v1
+        with:
+          model: "anthropic/claude-3-5-sonnet-20241022"
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          config_path: ".ci-reviewer.yml"
+        env:
+          # Add the API key for your chosen model in GitHub Secrets
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Or OPENAI_API_KEY / GEMINI_API_KEY
+```
+
+> 💡 **Tip**: Add `.ci-reviewer.yml` to your repo root to customize ignore patterns, review depth, and repo-specific architecture guidelines.
+
+---
+
+## ⚙️ In-Repo Configuration (`.ci-reviewer.yml`)
+
+Repositories can fine-tune review behavior by placing a `.ci-reviewer.yml` in their repository root:
+
+```yaml
+version: "1"
+
+# Target LLM (LiteLLM provider/model notation)
+model: "anthropic/claude-3-5-sonnet-20241022"
+
+# Agent harness: "native" (fastest) or "strands" (AWS Strands with MCP tools)
+harness: "native"
+
+filters:
+  ignore_patterns:
+    - "**/*.lock"
+    - "**/pnpm-lock.yaml"
+    - "**/package-lock.json"
+    - "**/poetry.lock"
+    - "**/uv.lock"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.min.js"
+  max_diff_lines: 3000
+
+rules:
+  # Flag pull requests that add complex logic without test coverage
+  require_tests: true
+
+  # Check for OWASP Top 10 vulnerabilities and hardcoded secrets
+  check_security: true
+
+  # Cross-reference with in-repo docs/adr/ and architecture rules
+  check_architecture: true
+
+  # Custom guidelines specific to your codebase
+  custom_guidelines:
+    - "Never use raw SQL queries in controller or route handler code."
+    - "Ensure all database schema changes include backwards-compatible migrations."
+    - "Strict null-checks required on external webhook payloads."
 ```
 
 ---
 
-## 📁 Repository Blueprint
+## 🏗️ Architecture & Data Flow
 
-```text
-├── .agents/                           # Specialized agent persona rubrics
-│   ├── bootstrap.md                   # Instructions for the Commit 1 ritual
-│   ├── pr-reviewer.md                 # Rules & rubric for PR Review agents
-│   ├── code-implementer.md            # TDD & implementation guidelines
-│   └── architect.md                   # Architecture & ADR review guidelines
-├── .cursor/rules/                     # IDE-specific pointers
-│   └── 00-agent-core.mdc              # Points Cursor to AGENTS.md
-├── .github/
-│   ├── copilot-instructions.md        # Points Copilot to AGENTS.md
-│   ├── PULL_REQUEST_TEMPLATE.md       # PR template with agent validation gates
-│   ├── ISSUE_TEMPLATE/feature_spec.md # Feature spec issue starter
-│   └── workflows/ci.yml               # Auto-detecting multi-stack CI gate
-├── docs/
-│   ├── adr/                           # Architectural Decision Records (MADR)
-│   │   ├── 0001-record-architecture-decisions.md
-│   │   ├── README.md                  # Index of ADRs
-│   │   └── template.md                # Markdown ADR template
-│   ├── architecture/                  # High-level architecture & module boundaries
-│   │   └── overview.md
-│   └── workflows/                     # Human-in-the-loop workflows
-│       └── agentic-sdlc.md
-├── specs/                             # Spec-Driven Development workspace
-│   ├── _template/                     # Master templates
-│   │   ├── spec.md                    # Business intent & acceptance criteria
-│   │   ├── plan.md                    # Architecture plan & touched files
-│   │   └── tasks.md                   # Atomic checklist with TDD checks
-│   ├── active/                        # Currently active feature spec
-│   └── archive/                       # Historical completed specs
-├── scripts/
-│   ├── verify.ps1                     # PowerShell deterministic test/lint/type gate
-│   ├── verify.sh                      # Bash deterministic test/lint/type gate
-│   └── bootstrap.ps1                  # Interactive stack switcher
-├── AGENTS.md                          # Universal Root Agent Contract (SSOT)
-├── CLAUDE.md                          # Points Claude Code to AGENTS.md
-├── .gitignore                         # Comprehensive polyglot gitignore
-└── README.md                          # This documentation
+```
+                               Pull Request Event
+                                       │
+                                       ▼
+                     ┌───────────────────────────────────┐
+                     │     GitHub Ingestion Engine       │
+                     │  - Fetch PR Diff & Metadata       │
+                     │  - Filter ignored files & hunks   │
+                     └─────────────────┬─────────────────┘
+                                       │
+                                       ▼
+                     ┌───────────────────────────────────┐
+                     │     Context Aggregator Layer      │
+                     │  - In-repo ADRs (docs/adr/)       │
+                     │  - AGENTS.md / Architecture Docs  │
+                     │  - Repo rules (.ci-reviewer.yml)  │
+                     └─────────────────┬─────────────────┘
+                                       │
+                                       ▼
+                     ┌───────────────────────────────────┐
+                     │       Review Agent Harness        │
+                     │  - Native LiteLLM / AWS Strands   │
+                     │  - Rubric Persona Evaluation      │
+                     │  - Security & Anti-Lazy-Assert    │
+                     └─────────────────┬─────────────────┘
+                                       │
+                                       ▼
+                     ┌───────────────────────────────────┐
+                     │     GitHub API Publisher Layer    │
+                     │  - PR Top-level Markdown Review   │
+                     │  - Inline Line-Specific Comments  │
+                     └───────────────────────────────────┘
+```
+
+For comprehensive technical specifications, see:
+* [System Architecture Overview](docs/architecture/overview.md)
+* [Harness & Model Layer Research](docs/research/agent-harness-and-model-layer.md)
+* [ADR 0002: Technology Stack & Pluggable Harness](docs/adr/0002-technology-stack-and-agent-harness.md)
+
+---
+
+## 💻 Local CLI Usage
+
+You can run `ci-code-reviewer` directly from your terminal or in custom CI pipelines:
+
+```bash
+# Review a raw git diff
+git diff main...HEAD > my_feature.diff
+uvx ci-code-reviewer review --diff-file my_feature.diff --model openai/gpt-4o
+
+# Review a GitHub PR with dry-run (prints findings to terminal without commenting)
+uvx ci-code-reviewer review --pr 42 --dry-run
 ```
 
 ---
 
-## 🔄 Daily Workflow with Agents (Spec-Driven SDLC)
+## 🤖 Ask Your Coding Agent to Set It Up
 
-```
-1. Specify              2. Plan                 3. Implement (TDD)      4. Deterministic Gate     5. Review & Merge
-(Human / spec.md) ──▶  (Agent / plan.md) ──▶   (Agent / tasks.md) ──▶  (./scripts/verify.*) ──▶  (.agents/pr-reviewer.md)
-```
+If you are using Cursor, Claude Code, GitHub Copilot, or Antigravity in an external repository, simply prompt it:
 
-1. **Specify**: Copy `specs/_template/` to `specs/active/`. Define what you want in `spec.md`.
-2. **Plan**: Ask your agent: *"Read `specs/active/spec.md` and draft `plan.md` and `tasks.md`."*
-3. **Approve**: Review the plan to verify there is no over-engineering or unwanted dependencies.
-4. **Implement**: Tell the agent: *"Work through `tasks.md` using TDD. Run `./scripts/verify.ps1` after each task."*
-5. **Review**: Ask the PR review agent: *"Evaluate the git diff against `specs/active/spec.md` following `.agents/pr-reviewer.md`."*
-6. **Merge & Archive**: Merge the code and move `specs/active/` to `specs/archive/YYYY-MM-feature-name/`.
+> *"Set up automated code reviews for this repository using `tomasmed/ci-code-reviewer`. Create `.github/workflows/code-review.yml` and a `.ci-reviewer.yml` tailored to our tech stack."*
+
+See [`examples/agent-prompt.md`](examples/agent-prompt.md) for full instructions.
 
 ---
 
-## 🛡️ Supported Technology Stacks
+## 🛠️ Contributing & Development
 
-| Ecosystem | Primary Tools | Full Verify Command |
-| :--- | :--- | :--- |
-| **Next.js** | Next.js 15, TypeScript, Tailwind, Vitest | `pnpm lint && pnpm typecheck && pnpm test` |
-| **Vue.js** | Vue 3, Vite, TypeScript, Vitest | `pnpm lint && pnpm typecheck && pnpm test` |
-| **Svelte.js** | SvelteKit 2, Vite, TypeScript, Vitest | `pnpm check && pnpm lint && pnpm test` |
-| **C# (.NET)** | .NET 9/8, xUnit, C# 13, dotnet CLI | `dotnet format --verify-no-changes && dotnet test` |
-| **Python** | Python 3.12+, uv, ruff, pytest, mypy | `uv run ruff check . && uv run mypy . && uv run pytest` |
-| **Go** | Go 1.23+, golangci-lint, standard tests | `golangci-lint run && go test -race ./...` |
+This repository uses **Python 3.12+** and [`uv`](https://docs.astral.sh/uv/) for high-velocity development.
+
+```bash
+# Clone the repository
+git clone https://github.com/tomasmed/ci-code-reviewer.git
+cd ci-code-reviewer
+
+# Sync dependencies & virtual environment
+uv sync --extra dev
+
+# Run the deterministic verification gate (lint + format check + tests)
+./scripts/verify.ps1   # Windows PowerShell
+./scripts/verify.sh    # macOS / Linux
+```
+
+All contributions must pass the deterministic verification gate and adhere to [AGENTS.md](AGENTS.md).
