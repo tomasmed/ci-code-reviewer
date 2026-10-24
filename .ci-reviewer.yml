@@ -1,0 +1,85 @@
+# .ci-reviewer.yml — CI Code Reviewer Repository Configuration
+version: "1"
+
+# LLM model powered by LiteLLM (using Gemini for dogfooding)
+model: "gemini/gemini-2.0-flash"
+
+# Agent harness: "native" (fastest, lightweight) or "maf" (Microsoft Agent Framework)
+harness: "native"
+
+filters:
+  ignore_patterns:
+    - "**/*.lock"
+    - "**/pnpm-lock.yaml"
+    - "**/package-lock.json"
+    - "**/poetry.lock"
+    - "**/uv.lock"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.min.js"
+    - "**/*.min.css"
+    - "**/coverage/**"
+  max_diff_lines: 3000
+
+rules:
+  # Flag PRs that add logic without corresponding tests
+  require_tests: true
+
+  # Security checks (OWASP Top 10, credential leaks, unescaped inputs)
+  check_security: true
+
+  # Conformance against repository architecture and ADRs
+  check_architecture: true
+
+# Code Owner PR Voting Policy
+voting:
+  # Starts in safe advisory COMMENT mode during initial dogfooding
+  # Set to true to emit official APPROVE or REQUEST_CHANGES reviews
+  enabled: false
+  allow_approve: true
+  allow_request_changes: true
+
+# Review Lenses: Specialized sub-agent turns decomposing review focus.
+lenses:
+  # Lens 1: In-Repo ADR Application Lens
+  - name: "architecture_adrs"
+    description: "Audits diff strictly against in-repo ADRs and layering boundaries"
+    context_files:
+      - "docs/adr/*.md"
+      - "docs/architecture/*.md"
+      - "AGENTS.md"
+    blocking: true
+    prompt: |
+      You are an expert Software Architecture sub-agent evaluating this pull request.
+      1. Inspect the git diff against the provided Architecture Decision Records (ADRs) and AGENTS.md.
+      2. Ensure new code strictly respects established decisions:
+         - Pure separation between config, models, harness, providers, and integrations.
+         - Deterministic verification gates and conventional commit standards.
+      3. Flag any prohibited dependencies, modularity leaks, or architectural drift as critical blockers.
+
+  # Lens 2: Security & AppSec Lens
+  - name: "security_owasp"
+    description: "Audits diff for OWASP vulnerabilities, secret leaks, and unescaped inputs"
+    blocking: true
+    prompt: |
+      You are an expert Application Security (AppSec) sub-agent.
+      Audit the git diff strictly for security flaws:
+      1. Check for hardcoded credentials, API keys, tokens, or private secrets.
+      2. Check for injection risks (command injection, SSRF, unsafe deserialization).
+      3. Ensure all external inputs and HTTP webhook payloads are validated with strict schemas.
+      Flag any security vulnerabilities as critical blockers.
+
+  # Lens 3: Test Integrity & Anti-Lazy-Assert Lens
+  - name: "test_integrity"
+    description: "Audits test quality and enforces anti-lazy-assert discipline"
+    file_patterns:
+      - "tests/**"
+      - "test/**"
+      - "**/*test*.py"
+    blocking: false
+    prompt: |
+      You are an expert QA and Test Integrity sub-agent.
+      Scrutinize the test changes in this pull request:
+      - Anti-Lazy-Assert: Flag hollow assertions (e.g., 'assert True', trivial identity checks, empty stubs).
+      - Over-Mocking: Flag tests that mock out all meaningful domain logic.
+      - Missing Tests: If new business logic or boundary conditions are introduced without tests, note it.
