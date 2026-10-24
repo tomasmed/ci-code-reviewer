@@ -12,7 +12,6 @@ We are creating an open-source agentic code reviewer intended to run inside GitH
 2. Allow users to Bring Your Own Key (BYOK) across any LLM (Claude, GPT, Gemini, Bedrock) or run locally using open-source weights (Ollama, vLLM).
 3. Support multiple leading agent frameworks from day one, specifically launching with support for both **AWS Strands** (`strands-agents`) and the **Microsoft Agent Framework** (`agent-framework` / MAF), alongside an ultra-fast native engine.
 4. Provide an architecture extensible toward subscription bridging (e.g. Claude Code session tokens, GitHub Copilot subscriptions).
-5. Enable User 0 dogfooding across repository suites.
 
 ## Decision Drivers
 
@@ -48,5 +47,4 @@ Chosen option: **Option 3**. Launching with first-class support for both **AWS S
 
 ## Links
 
-* [Agent Harness & Model Layer Research](../research/agent-harness-and-model-layer.md)
 * [System Architecture Overview](../architecture/overview.md)

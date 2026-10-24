@@ -28,5 +28,5 @@ jobs:
 
       - name: Run Deterministic Verification
         run: |
-          chmod +x ./scripts/verify.sh
-          ./scripts/verify.sh
+          chmod +x ./.github/scripts/verify.sh
+          ./.github/scripts/verify.sh

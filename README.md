@@ -15,7 +15,6 @@ Built on a pluggable agent harness supporting **AWS Strands** and a lightweight 
   * **Microsoft Agent Framework (`maf`)**: Powered by Microsoft's unified **Agent Framework** (`agent-framework`), offering AutoGen-style conversational multi-agent review teams and enterprise coordination.
   * **Native Engine (`native`)**: Sub-second startup time on ephemeral CI runners via direct `litellm` and `pydantic`.
 * **Universal BYOK (Bring Your Own Key)**: Powered by LiteLLM. Use Claude 3.5 Sonnet, GPT-4o, Gemini 2.0, DeepSeek R1, or air-gapped local models via **Ollama**.
-* **User 0 Dogfooding Process**: Actively tested and refined against real pull requests across `tomasmed/*` repositories prior to public release.
 * **Subscription Bridging Layer**: Extensible auth architecture designed to support consumer subscriptions (Claude Code session tokens, GitHub Copilot tokens, and OAuth bridges).
 * **Zero-Friction Adoption**: Drop a 15-line GitHub Action into any repository or point an AI coding assistant at this repo to auto-configure.
 
@@ -141,12 +140,10 @@ rules:
                      └───────────────────────────────────┘
 ```
 
-For comprehensive technical specifications, see:
-* [Prior Art & Competitive Landscape](docs/research/prior-art-and-landscape.md)
+For architectural specifications, see:
 * [System Architecture Overview](docs/architecture/overview.md)
-* [Harness & Model Layer Research](docs/research/agent-harness-and-model-layer.md)
 * [ADR 0002: Multi-Harness Technology Stack](docs/adr/0002-technology-stack-and-agent-harness.md)
-* [User 0 Dogfooding Playbook](docs/dogfooding/user-0-playbook.md)
+* [Contributor Agentic SDLC & Ownership Guide](docs/workflows/agentic-sdlc.md)
 
 ---
 
@@ -188,8 +185,8 @@ cd ci-code-reviewer
 uv sync --extra dev
 
 # Run the deterministic verification gate (lint + format check + tests)
-./scripts/verify.ps1   # Windows PowerShell
-./scripts/verify.sh    # macOS / Linux
+./.github/scripts/verify.ps1   # Windows PowerShell
+./.github/scripts/verify.sh    # macOS / Linux
 ```
 
 All contributions must pass the deterministic verification gate and adhere to [AGENTS.md](AGENTS.md).

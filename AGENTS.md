@@ -21,7 +21,7 @@ Agents must **never guess commands**. Use the exact CLI invocations below:
 
 | Action | Command (PowerShell) | Command (Bash / POSIX) | Description |
 | :--- | :--- | :--- | :--- |
-| **Full Verify** | `./scripts/verify.ps1` | `./scripts/verify.sh` | **Runs ruff linter + format check + pytest in one gate.** |
+| **Full Verify** | `./.github/scripts/verify.ps1` | `./.github/scripts/verify.sh` | **Runs ruff linter + format check + pytest in one gate.** |
 | **Build / Sync**| `uv sync --extra dev` | `uv sync --extra dev` | Synchronizes virtual environment and dependencies |
 | **Test All** | `uv run pytest` | `uv run pytest` | Executes the complete test suite |
 | **Test Single** | `uv run pytest tests/<test_file>.py` | `uv run pytest tests/<test_file>.py` | Run a specific test file or filter |
@@ -34,7 +34,7 @@ Agents must **never guess commands**. Use the exact CLI invocations below:
 ## 3. Inviolable Guardrails
 
 1. **Verify Before Completion**:
-   * Never declare a task complete or ask for review without running the **Full Verify** command (`./scripts/verify.ps1` or `./scripts/verify.sh`).
+   * Never declare a task complete or ask for review without running the **Full Verify** command (`./.github/scripts/verify.ps1` or `./.github/scripts/verify.sh`).
    * If verification fails, inspect stderr, fix the issue, and rerun until 100% green.
 
 2. **No Hallucinated Dependencies**:
@@ -67,7 +67,7 @@ specs/active/spec.md  ──▶  specs/active/plan.md  ──▶  specs/active/t
 1. **Specify (`spec.md`)**: Define user stories, functional requirements, and edge cases.
 2. **Plan (`plan.md`)**: Outline technical design, files to create/touch, and potential failure modes.
 3. **Tasks (`tasks.md`)**: Break the plan into numbered, atomically testable micro-tasks (`[ ] 1. ...`).
-4. **Execute**: Work through one task at a time, checking boxes (`[x]`) only after verifying changes with `./scripts/verify.ps1`.
+4. **Execute**: Work through one task at a time, checking boxes (`[x]`) only after verifying changes with `./.github/scripts/verify.ps1`.
 
 ---
 
