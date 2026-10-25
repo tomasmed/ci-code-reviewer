@@ -2,7 +2,7 @@
 version: "1"
 
 # LLM model powered by LiteLLM (using Gemini for dogfooding)
-model: "gemini/gemini-2.0-flash"
+model: "gemini/gemini-3.8-flash"
 
 # Agent harness: "native" (fastest, lightweight) or "maf" (Microsoft Agent Framework)
 harness: "native"
