@@ -70,8 +70,53 @@ def test_maf_fallback_review() -> None:
         context="Repo context",
         config=config,
     )
-    assert result.recommendation in [Recommendation.APPROVE, Recommendation.COMMENT]
-    assert "Microsoft Agent Framework" in result.summary or "MAF" in result.summary
+    assert result.recommendation == Recommendation.COMMENT
+    assert "open-stance fallback mode" in result.summary
+
+
+def test_native_partial_fallback_review() -> None:
+    from unittest.mock import patch
+
+    from ci_code_reviewer.models import LensTurnResult, ReviewComment
+
+    harness = NativeReviewHarness()
+    config = ReviewerConfig(harness="native")
+
+    success_turn = LensTurnResult(
+        lens_name="architecture_adrs",
+        summary="All architectural patterns confirmed.",
+        findings=[
+            ReviewComment(
+                file_path="src/api.py",
+                line_number=10,
+                side="RIGHT",
+                severity="suggestion",
+                title="Consider dependency injection",
+                body="Decouple direct instantiation.",
+            )
+        ],
+        has_blockers=False,
+    )
+    fallback_turn = LensTurnResult(
+        lens_name="security_owasp",
+        summary="Sub-agent turn completed (offline/fallback mode: Timeout).",
+        findings=[],
+        has_blockers=False,
+    )
+
+    with patch.object(
+        harness,
+        "_execute_lens_turn",
+        side_effect=[success_turn, fallback_turn, fallback_turn],
+    ):
+        result = harness.review(
+            diff="--- a/src/api.py\n+++ b/src/api.py\n@@ -1 +1 @@\n-old\n+new",
+            context="context",
+            config=config,
+        )
+        assert result.recommendation == Recommendation.COMMENT
+        assert "Found 0 blockers and 1 suggestions" in result.summary
+        assert "operated in fallback mode" in result.summary
 
 
 def test_maf_multi_lens_turn_execution() -> None:
