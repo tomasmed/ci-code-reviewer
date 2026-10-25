@@ -80,17 +80,18 @@ class MafReviewHarness(ReviewHarness):
             if "offline" in lens_summaries.get(lens.name, "")
             or "simulated" in lens_summaries.get(lens.name, "")
         ]
+        all_lenses_fell_back = bool(active_lenses) and len(fallback_lenses) == len(active_lenses)
 
         if has_blocker:
             rec = Recommendation.REQUEST_CHANGES
         elif all_suggestions:
             rec = Recommendation.COMMENT
-        elif len(fallback_lenses) == len(active_lenses):
+        elif all_lenses_fell_back:
             rec = Recommendation.COMMENT
         else:
             rec = Recommendation.APPROVE
 
-        if len(fallback_lenses) == len(active_lenses):
+        if all_lenses_fell_back:
             summary_text = (
                 f"Microsoft Agent Framework (MAF) evaluated diff across {len(active_lenses)} review lenses: "
                 + ", ".join(f"[{lens.name}]" for lens in active_lenses)

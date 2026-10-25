@@ -63,19 +63,20 @@ class NativeReviewHarness(ReviewHarness):
             for lens in active_lenses
             if "offline/fallback mode" in lens_summaries.get(lens.name, "")
         ]
+        all_lenses_fell_back = bool(active_lenses) and len(fallback_lenses) == len(active_lenses)
 
         if has_blocker:
             rec = Recommendation.REQUEST_CHANGES
         elif all_suggestions:
             rec = Recommendation.COMMENT
-        elif len(fallback_lenses) == len(active_lenses):
+        elif all_lenses_fell_back:
             # Open stance / fail-open: All lenses hit provider/connection errors.
             # Avoid emitting a misleading formal approval when zero active inspection occurred.
             rec = Recommendation.COMMENT
         else:
             rec = Recommendation.APPROVE
 
-        if len(fallback_lenses) == len(active_lenses):
+        if all_lenses_fell_back:
             summary_text = (
                 f"Evaluated diff across {len(active_lenses)} review lenses: "
                 + ", ".join(f"[{lens.name}]" for lens in active_lenses)

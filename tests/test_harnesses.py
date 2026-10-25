@@ -151,3 +151,25 @@ def test_maf_multi_lens_turn_execution() -> None:
     assert "sql_lens" in assessment.lens_summaries
     assert "general_lens" in assessment.lens_summaries
     assert "MAF" in assessment.summary or "Microsoft Agent Framework" in assessment.summary
+
+
+def test_harness_empty_lenses_no_false_fallback() -> None:
+    native = NativeReviewHarness()
+    maf = MafReviewHarness()
+    empty_config = ReviewerConfig(lenses=[])
+
+    native_result = native.review(
+        diff="--- a/src/api.py\n+++ b/src/api.py\n@@ -1 +1 @@\n-old\n+new",
+        context="context",
+        config=empty_config,
+    )
+    assert native_result.recommendation == Recommendation.APPROVE
+    assert "fallback mode" not in native_result.summary
+
+    maf_result = maf.review(
+        diff="--- a/src/api.py\n+++ b/src/api.py\n@@ -1 +1 @@\n-old\n+new",
+        context="context",
+        config=empty_config,
+    )
+    assert maf_result.recommendation == Recommendation.APPROVE
+    assert "fallback mode" not in maf_result.summary
