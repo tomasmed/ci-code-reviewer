@@ -137,6 +137,10 @@ def review(
         config=cfg,
     )
 
+    for lens_name, lens_summary in assessment.lens_summaries.items():
+        if "fallback mode" in lens_summary or "offline mode" in lens_summary:
+            console.print(f"[yellow]⚠️  Notice: Lens '{lens_name}' - {lens_summary}[/yellow]")
+
     # Console output rendering
     console.print(
         Panel(

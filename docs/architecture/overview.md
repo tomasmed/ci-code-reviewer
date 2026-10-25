@@ -159,3 +159,13 @@ rules:
   custom_guidelines:
     - "Enforce strict error boundary handling in React components."
 ```
+
+---
+
+## 6. Resilience & Fail-Open Stance
+
+In production CI/CD environments, third-party LLM providers can suffer outages, rate limits (HTTP 429), or authentication / 404 model mismatches. `ci-code-reviewer` operates under an **Open Stance / Fail-Open Stance** ([ADR 0003](../adr/0003-fail-open-stance-and-degraded-provider-fallback.md)):
+1. **Never Block CI Merges**: LLM failure does not cause the GitHub Action step to fail (exits code `0`).
+2. **Transparent Diagnostic Surfacing**: Upstream error reasons (`404 Not Found`, rate limits) are output to CI runner logs and PR assessment summaries.
+3. **Advisory Comment Mode**: When all sub-agent turns run in fallback mode, the assessment defaults to an advisory comment (`Recommendation.COMMENT`) rather than casting a misleading clean approval.
+
