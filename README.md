@@ -163,6 +163,36 @@ uvx ci-code-reviewer review --pr 42 --dry-run
 
 ---
 
+## 🔑 LLM Provider Routing & Model Formats
+
+`ci-code-reviewer` relies on **LiteLLM** for provider routing. Ensure your model identifiers and environment variables match:
+
+| Provider | Model Identifier Format | Required Env Var | Notes |
+| :--- | :--- | :--- | :--- |
+| **Google AI Studio** | `gemini/gemini-2.0-flash`<br>`gemini/gemini-1.5-flash` | `GEMINI_API_KEY` | **Must include `gemini/` prefix**. Omitting the prefix routes to Vertex AI (requiring GCP project credentials) and causes HTTP 404. |
+| **Anthropic** | `anthropic/claude-3-5-sonnet-20241022` | `ANTHROPIC_API_KEY` | High reasoning fidelity and ADR conformance. |
+| **OpenAI** | `openai/gpt-4o`<br>`openai/gpt-4o-mini` | `OPENAI_API_KEY` | Fast structured output evaluation. |
+| **Ollama (Local)** | `ollama/qwen2.5-coder:7b` | _None_ | Set `api_base: "http://localhost:11434"` in config. |
+
+> ⚠️ **Troubleshooting HTTP 404 with Gemini**: If Google AI Studio returns 404:
+> 1. Check for the `gemini/` prefix (e.g., `gemini/gemini-2.0-flash`, not `gemini-2.0-flash`).
+> 2. Verify the model ID is active in your Google AI Studio project (some snapshots or experimental tiers may require `gemini/gemini-1.5-flash` or newer general releases).
+> 3. Verify `GEMINI_API_KEY` is set in GitHub repository secrets and forwarded in your workflow step `env:`.
+
+---
+
+## 🛡️ Reliability & Fail-Open Stance (Open Stance)
+
+CI pipelines should **never block developer merges** due to transient third-party LLM outages, rate limits (HTTP 429), or misconfigured model keys.
+
+`ci-code-reviewer` adopts a **Fail-Open Stance** ([ADR 0003](docs/adr/0003-fail-open-stance-and-degraded-provider-fallback.md)):
+* If an LLM provider endpoint is unreachable or returns an error, the review harness completes in **fallback mode**.
+* The GitHub Actions job exits with code `0` to keep CI green and prevent blocking deployments.
+* The exact provider error (e.g. `NotFoundError: 404`) is prominently printed to CI console logs and recorded in PR comments.
+* The review assessment emits an advisory **COMMENT** rather than a misleading clean **APPROVE**, ensuring transparent visibility.
+
+---
+
 ## 🤖 Ask Your Coding Agent to Set It Up
 
 If you are using Cursor, Claude Code, GitHub Copilot, or Antigravity in an external repository, simply prompt it:

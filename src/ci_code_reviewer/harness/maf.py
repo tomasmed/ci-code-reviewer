@@ -74,18 +74,38 @@ class MafReviewHarness(ReviewHarness):
                 else:
                     all_suggestions.append(comment)
 
+        fallback_lenses = [
+            lens.name
+            for lens in active_lenses
+            if "offline" in lens_summaries.get(lens.name, "")
+            or "simulated" in lens_summaries.get(lens.name, "")
+        ]
+
         if has_blocker:
             rec = Recommendation.REQUEST_CHANGES
         elif all_suggestions:
             rec = Recommendation.COMMENT
+        elif len(fallback_lenses) == len(active_lenses):
+            rec = Recommendation.COMMENT
         else:
             rec = Recommendation.APPROVE
 
-        summary_text = (
-            f"Microsoft Agent Framework (MAF) evaluated diff across {len(active_lenses)} review lenses: "
-            + ", ".join(f"[{lens.name}]" for lens in active_lenses)
-            + f". Found {len(all_critical_findings)} blockers and {len(all_suggestions)} suggestions."
-        )
+        if len(fallback_lenses) == len(active_lenses):
+            summary_text = (
+                f"Microsoft Agent Framework (MAF) evaluated diff across {len(active_lenses)} review lenses: "
+                + ", ".join(f"[{lens.name}]" for lens in active_lenses)
+                + ". Notice: All lenses operated in open-stance fallback mode due to upstream provider/model error. Active LLM inspection was bypassed."
+            )
+        else:
+            summary_text = (
+                f"Microsoft Agent Framework (MAF) evaluated diff across {len(active_lenses)} review lenses: "
+                + ", ".join(f"[{lens.name}]" for lens in active_lenses)
+                + f". Found {len(all_critical_findings)} blockers and {len(all_suggestions)} suggestions."
+            )
+            if fallback_lenses:
+                summary_text += (
+                    f" (Note: {len(fallback_lenses)} lens(es) operated in fallback mode)."
+                )
 
         test_notes = lens_summaries.get(
             "test_integrity", "Test integrity evaluated by MAF QA agent."
@@ -169,10 +189,11 @@ Respond strictly in valid JSON adhering to this schema:
                 findings=findings,
                 has_blockers=any(f.severity == "blocker" for f in findings),
             )
-        except Exception:
+        except Exception as e:
+            err_msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
             return LensTurnResult(
                 lens_name=lens.name,
-                summary=f"MAF agent turn for lens '{lens.name}' completed (simulated/offline mode).",
+                summary=f"MAF agent turn for lens '{lens.name}' completed (simulated/offline mode: {err_msg}).",
                 findings=[],
                 has_blockers=False,
             )

@@ -48,7 +48,12 @@ runs:
     - name: Run CI Code Reviewer
       shell: bash
       run: |
-        uvx --from git+https://github.com/tomasmed/ci-code-reviewer.git ci-code-reviewer review \
+        REF="${{ github.action_ref }}"
+        PKG_SRC="git+https://github.com/tomasmed/ci-code-reviewer.git"
+        if [ -n "$REF" ]; then
+          PKG_SRC="${PKG_SRC}@${REF}"
+        fi
+        uvx --from "$PKG_SRC" ci-code-reviewer review \
           --pr "${{ github.event.pull_request.number }}" \
           --model "${{ inputs.model }}" \
           --harness "${{ inputs.harness }}" \

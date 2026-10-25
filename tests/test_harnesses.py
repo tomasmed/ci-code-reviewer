@@ -43,8 +43,11 @@ def test_native_fallback_review() -> None:
         context="Repo context",
         config=config,
     )
-    assert result.recommendation in [Recommendation.APPROVE, Recommendation.COMMENT]
-    assert "review lenses" in result.summary or "NativeReviewHarness" in result.summary
+    assert result.recommendation == Recommendation.COMMENT
+    assert "open-stance fallback mode" in result.summary
+    assert len(result.lens_summaries) > 0
+    for summary in result.lens_summaries.values():
+        assert "offline/fallback mode" in summary
 
 
 def test_strands_fallback_review() -> None:

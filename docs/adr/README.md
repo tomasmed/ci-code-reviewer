@@ -8,6 +8,7 @@ This directory maintains the Architectural Decision Records for `ci-code-reviewe
 | :--- | :--- | :--- | :--- |
 | [0001](0001-record-architecture-decisions.md) | Record Architecture Decisions | Accepted | 2026-10-24 |
 | [0002](0002-technology-stack-and-agent-harness.md) | Adopt Python (uv), LiteLLM Provider Layer, and Pluggable Harness (AWS Strands + Native) | Accepted | 2026-10-24 |
+| [0003](0003-fail-open-stance-and-degraded-provider-fallback.md) | Fail-Open Stance and Degraded Provider Fallback | Accepted | 2026-10-25 |
 
 ## Guidelines
 
