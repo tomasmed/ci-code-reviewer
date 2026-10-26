@@ -1,6 +1,7 @@
 """Microsoft Agent Framework (MAF) review harness."""
 
 import json
+import logging
 from typing import TYPE_CHECKING
 
 import litellm
@@ -21,6 +22,8 @@ from ci_code_reviewer.models import (
 
 if TYPE_CHECKING:
     from ci_code_reviewer.config import ReviewerConfig
+
+logger = logging.getLogger(__name__)
 
 
 class MafReviewHarness(ReviewHarness):
@@ -62,10 +65,10 @@ class MafReviewHarness(ReviewHarness):
         has_blocker = False
 
         for lens in active_lenses:
-            turn_result = self._execute_maf_lens_turn(lens, diff, context, config)
-            lens_summaries[lens.name] = turn_result.summary
+            lens_result = self._execute_maf_lens_turn(lens, diff, context, config)
+            lens_summaries[lens.name] = lens_result.summary
 
-            for comment in turn_result.findings:
+            for comment in lens_result.findings:
                 comment.lens = lens.name
                 if comment.severity == "blocker":
                     all_critical_findings.append(comment)
@@ -191,10 +194,18 @@ Respond strictly in valid JSON adhering to this schema:
                 has_blockers=any(f.severity == "blocker" for f in findings),
             )
         except Exception as e:
-            err_msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+            logger.error(
+                "Review lens '%s' MAF turn execution failed: %s",
+                lens.name,
+                e,
+                exc_info=True,
+            )
             return LensTurnResult(
                 lens_name=lens.name,
-                summary=f"MAF agent turn for lens '{lens.name}' completed (simulated/offline mode: {err_msg}).",
+                summary=(
+                    f"MAF agent turn for lens '{lens.name}' encountered an error "
+                    "and could not complete review. Check CI logs for details (offline/fallback mode)."
+                ),
                 findings=[],
                 has_blockers=False,
             )

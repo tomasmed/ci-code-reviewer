@@ -1,5 +1,8 @@
 """Tests for review harnesses and factory."""
 
+import logging
+from unittest.mock import patch
+
 import pytest
 
 from ci_code_reviewer.config import ReviewerConfig
@@ -7,7 +10,8 @@ from ci_code_reviewer.harness.factory import HARNESS_REGISTRY, get_harness
 from ci_code_reviewer.harness.maf import MafReviewHarness
 from ci_code_reviewer.harness.native import NativeReviewHarness
 from ci_code_reviewer.harness.strands import StrandsReviewHarness
-from ci_code_reviewer.models import Recommendation
+from ci_code_reviewer.lenses import ReviewLensConfig
+from ci_code_reviewer.models import LensTurnResult, Recommendation, ReviewComment
 
 
 def test_harness_registry_contains_launch_targets() -> None:
@@ -35,19 +39,25 @@ def test_get_harness_unknown_raises() -> None:
         get_harness("nonexistent")
 
 
-def test_native_fallback_review() -> None:
+def test_native_fallback_review(caplog: pytest.LogCaptureFixture) -> None:
     harness = NativeReviewHarness()
     config = ReviewerConfig(harness="native")
-    result = harness.review(
-        diff="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
-        context="Repo context",
-        config=config,
-    )
+    with caplog.at_level(logging.ERROR):
+        result = harness.review(
+            diff="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
+            context="Repo context",
+            config=config,
+        )
     assert result.recommendation == Recommendation.COMMENT
     assert "open-stance fallback mode" in result.summary
     assert len(result.lens_summaries) > 0
     for summary in result.lens_summaries.values():
         assert "offline/fallback mode" in summary
+        assert "encountered an error" in summary
+        assert "Check CI logs" in summary
+        assert "Exception" not in summary
+        assert "Traceback" not in summary
+    assert any("Review lens" in record.message for record in caplog.records)
 
 
 def test_strands_fallback_review() -> None:
@@ -62,23 +72,28 @@ def test_strands_fallback_review() -> None:
     assert "Strands" in result.summary or "Strands" in result.test_integrity_notes
 
 
-def test_maf_fallback_review() -> None:
+def test_maf_fallback_review(caplog: pytest.LogCaptureFixture) -> None:
     harness = MafReviewHarness()
     config = ReviewerConfig(harness="maf")
-    result = harness.review(
-        diff="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
-        context="Repo context",
-        config=config,
-    )
+    with caplog.at_level(logging.ERROR):
+        result = harness.review(
+            diff="--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new",
+            context="Repo context",
+            config=config,
+        )
     assert result.recommendation == Recommendation.COMMENT
     assert "open-stance fallback mode" in result.summary
+    assert len(result.lens_summaries) > 0
+    for summary in result.lens_summaries.values():
+        assert "offline/fallback mode" in summary
+        assert "encountered an error" in summary
+        assert "Check CI logs" in summary
+        assert "Exception" not in summary
+        assert "Traceback" not in summary
+    assert any("Review lens" in record.message for record in caplog.records)
 
 
 def test_native_partial_fallback_review() -> None:
-    from unittest.mock import patch
-
-    from ci_code_reviewer.models import LensTurnResult, ReviewComment
-
     harness = NativeReviewHarness()
     config = ReviewerConfig(harness="native")
 
@@ -99,7 +114,7 @@ def test_native_partial_fallback_review() -> None:
     )
     fallback_turn = LensTurnResult(
         lens_name="security_owasp",
-        summary="Sub-agent turn completed (offline/fallback mode: Timeout).",
+        summary="Sub-agent turn for lens 'security_owasp' encountered an error and could not complete review. Check CI logs for details (offline/fallback mode).",
         findings=[],
         has_blockers=False,
     )
@@ -120,8 +135,6 @@ def test_native_partial_fallback_review() -> None:
 
 
 def test_maf_multi_lens_turn_execution() -> None:
-    from ci_code_reviewer.lenses import ReviewLensConfig
-
     harness = MafReviewHarness()
     config = ReviewerConfig(
         harness="maf",
