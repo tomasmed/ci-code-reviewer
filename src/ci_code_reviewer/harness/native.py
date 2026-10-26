@@ -1,6 +1,7 @@
 """Native review harness evaluating diffs through specialized sub-agent lens turns."""
 
 import json
+import logging
 from typing import TYPE_CHECKING
 
 import litellm
@@ -21,6 +22,8 @@ from ci_code_reviewer.models import (
 
 if TYPE_CHECKING:
     from ci_code_reviewer.config import ReviewerConfig
+
+logger = logging.getLogger(__name__)
 
 
 class NativeReviewHarness(ReviewHarness):
@@ -175,10 +178,18 @@ Respond strictly in valid JSON adhering to this schema:
                 has_blockers=any(f.severity == "blocker" for f in findings),
             )
         except Exception as e:
-            err_msg = f"{type(e).__name__}: {e}" if str(e) else type(e).__name__
+            logger.error(
+                "Review lens '%s' turn execution failed: %s",
+                lens.name,
+                e,
+                exc_info=True,
+            )
             return LensTurnResult(
                 lens_name=lens.name,
-                summary=f"Sub-agent turn for lens '{lens.name}' completed (offline/fallback mode: {err_msg}).",
+                summary=(
+                    f"Sub-agent turn for lens '{lens.name}' encountered an error "
+                    "and could not complete review. Check CI logs for details (offline/fallback mode)."
+                ),
                 findings=[],
                 has_blockers=False,
             )

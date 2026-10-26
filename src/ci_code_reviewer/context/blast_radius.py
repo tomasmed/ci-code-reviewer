@@ -25,6 +25,23 @@ IGNORE_SYMBOLS = {
     "run",
     "setUp",
     "tearDown",
+    # Common HTTP methods frequently exported in route handlers (e.g. Next.js App Router)
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "PATCH",
+    "HEAD",
+    "OPTIONS",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "head",
+    "options",
+    "handler",
+    "default",
 }
 
 DEFAULT_SCAN_EXTENSIONS = {

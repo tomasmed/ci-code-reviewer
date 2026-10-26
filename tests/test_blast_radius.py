@@ -44,6 +44,27 @@ def test_extract_modified_symbols_typescript() -> None:
     assert "AuthService" in symbols
 
 
+def test_extract_modified_symbols_ignores_http_verbs_and_noise() -> None:
+    diff_text = """
+--- a/src/routes.ts
++++ b/src/routes.ts
+@@ -1,6 +1,8 @@
++export async function POST(request: Request) {
++    return new Response("ok");
++}
++export async function GET(request: Request) {
++    return new Response("ok");
++}
++export async function handleUserUpdate(id: string) {
++    return id;
++}
+"""
+    symbols = extract_modified_symbols(diff_text)
+    assert "POST" not in symbols
+    assert "GET" not in symbols
+    assert "handleUserUpdate" in symbols
+
+
 def test_find_downstream_references(tmp_path: Path) -> None:
     # Setup simulated workspace
     src_dir = tmp_path / "src"
